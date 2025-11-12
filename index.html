@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10秒チャレンジ</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Animate.css CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+</head>
+<body>
+    <!-- 紙吹雪コンテナ -->
+    <div id="confetti-container"></div>
+    
+    <!-- フラッシュエフェクト -->
+    <div id="flash-effect"></div>
+
+    <!-- リセットボタン（右上固定） -->
+    <button id="resetAllButton" class="reset-all-button" title="ランキングをリセット">
+        🔄 リセット
+    </button>
+
+    <!-- メインコンテナ -->
+    <div class="container">
+        <!-- タイトルセクション -->
+        <header class="header">
+            <h1 class="title">10秒チャレンジ</h1>
+            <p class="subtitle">10秒ちょうどを目指してストップボタンを押そう！</p>
+        </header>
+
+        <!-- 2カラムレイアウト -->
+        <div class="main-content">
+            <!-- 左側：ゲームエリア -->
+            <div class="game-section">
+                <!-- 名前入力フィールド -->
+                <div class="input-group">
+                    <label for="playerName">プレイヤー名</label>
+                    <input 
+                        type="text" 
+                        id="playerName" 
+                        placeholder="名前を入力（省略可）" 
+                        maxlength="10"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <!-- スタート/ストップボタン -->
+                <button id="gameButton" class="game-button">スタート</button>
+
+                <!-- 結果表示エリア -->
+                <div id="resultArea" class="result-area hidden">
+                    <div id="resultTime" class="result-time"></div>
+                    <div id="resultMessage" class="result-message"></div>
+                    <button id="retryButton" class="retry-button">もう一度挑戦</button>
+                </div>
+                
+                <!-- 連続成功カウンター -->
+                <div id="streakCounter" class="streak-counter hidden">
+                    🔥 連続成功: <span id="streakCount">0</span>回
+                </div>
+            </div>
+
+            <!-- 右側：ランキングエリア -->
+            <div class="ranking-section">
+                <h2 class="ranking-title">🏆 RANKING</h2>
+                <div class="ranking-container">
+                    <table class="ranking-table">
+                        <thead>
+                            <tr>
+                                <th>順位</th>
+                                <th>名前</th>
+                                <th>タイム</th>
+                                <th>誤差</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingBody">
+                            <!-- JavaScriptで動的に生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

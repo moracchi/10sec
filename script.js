@@ -4,7 +4,6 @@
 let startTime = null;
 let isRunning = false;
 let rankings = [];
-let consecutiveStreak = 0; // 連続成功カウンター
 
 // DOM要素の取得
 const playerNameInput = document.getElementById('playerName');
@@ -17,17 +16,22 @@ const rankingBody = document.getElementById('rankingBody');
 const confettiContainer = document.getElementById('confetti-container');
 const flashEffect = document.getElementById('flash-effect');
 const resetAllButton = document.getElementById('resetAllButton');
-const streakCounter = document.getElementById('streakCounter');
-const streakCount = document.getElementById('streakCount');
+const snowContainer = document.getElementById('snow-container');
+const judgmentOverlay = document.getElementById('judgment-overlay');
+
+// 音声要素
+const seButtonStart = document.getElementById('se-button-start');
+const seButtonStop = document.getElementById('se-button-stop');
+const seResultNear = document.getElementById('se-result-near');
+const seRankNew = document.getElementById('se-rank-new');
 
 // ========================================
 // 初期化処理
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
     loadRankings();
-    loadStreak();
     displayRankings();
-    updateStreakDisplay();
+    createSnowfall();
     
     // イベントリスナーの設定
     gameButton.addEventListener('click', handleGameButton);
@@ -36,18 +40,43 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========================================
+// 音声再生ヘルパー関数
+// ========================================
+function playSound(audioElement) {
+    if (!audioElement) return;
+    audioElement.currentTime = 0;
+    audioElement.play().catch(e => console.log('音声再生エラー:', e));
+}
+
+// ========================================
+// 雪を降らせる
+// ========================================
+function createSnowfall() {
+    setInterval(() => {
+        const snowflake = document.createElement('div');
+        snowflake.className = 'snowflake';
+        snowflake.textContent = ['❄', '❅', '❆'][Math.floor(Math.random() * 3)];
+        snowflake.style.left = Math.random() * 100 + '%';
+        snowflake.style.fontSize = (Math.random() * 0.5 + 0.5) + 'rem';
+        snowflake.style.animationDuration = (Math.random() * 3 + 5) + 's';
+        
+        snowContainer.appendChild(snowflake);
+        
+        setTimeout(() => {
+            snowflake.remove();
+        }, 8000);
+    }, 300);
+}
+
+// ========================================
 // リセット確認
 // ========================================
 function confirmReset() {
-    if (confirm('ランキングと連続記録をすべてリセットしますか？')) {
+    if (confirm('🎄 ランキングをリセットしますか？')) {
         rankings = [];
-        consecutiveStreak = 0;
         saveRankings();
-        saveStreak();
         displayRankings();
-        updateStreakDisplay();
         
-        // リセット成功のフィードバック
         resetAllButton.textContent = '✓ リセット完了';
         setTimeout(() => {
             resetAllButton.textContent = '🔄 リセット';
@@ -73,12 +102,14 @@ function startGame() {
     startTime = Date.now();
     isRunning = true;
     
-    gameButton.textContent = 'ストップ';
+    gameButton.textContent = '🛑 ストップ';
     gameButton.classList.add('stop');
     
     resultArea.classList.add('hidden');
-    
     playerNameInput.disabled = true;
+    
+    // スタート音を再生
+    playSound(seButtonStart);
 }
 
 // ========================================
@@ -91,7 +122,24 @@ function stopGame() {
     isRunning = false;
     gameButton.disabled = true;
     
-    displayResult(elapsedTime);
+    // ストップ音を再生
+    playSound(seButtonStop);
+    
+    // 判定中オーバーレイを表示（射幸演出）
+    showJudgmentOverlay(elapsedTime);
+}
+
+// ========================================
+// 判定中オーバーレイ表示（射幸演出）
+// ========================================
+function showJudgmentOverlay(time) {
+    judgmentOverlay.classList.remove('hidden');
+    
+    // 1.5秒後に結果表示
+    setTimeout(() => {
+        judgmentOverlay.classList.add('hidden');
+        displayResult(time);
+    }, 1500);
 }
 
 // ========================================
@@ -101,12 +149,20 @@ function displayResult(time) {
     const timeDiff = Math.abs(time - 10.0);
     const isPerfect = timeDiff < 0.05;
     const isExcellent = timeDiff < 1.0 && timeDiff >= 0.05;
+    const isNearMiss = timeDiff >= 0.05 && timeDiff < 0.5; // ±0.5秒以内
     
     resultArea.classList.remove('hidden');
     
     // フラッシュエフェクト
     if (isPerfect || isExcellent) {
         triggerFlash();
+    }
+    
+    // ニアミス時の画面振動
+    if (isNearMiss) {
+        triggerScreenShake();
+        // ニアミス音を再生
+        playSound(seResultNear);
     }
     
     // タイムを1文字ずつアニメーション表示
@@ -117,33 +173,25 @@ function displayResult(time) {
     setTimeout(() => {
         if (isPerfect) {
             // Perfect演出
-            consecutiveStreak++;
-            saveStreak();
-            updateStreakDisplay();
-            
-            resultMessage.textContent = '🎉 PERFECT! 🎉';
+            resultMessage.textContent = '🎅 PERFECT! 🎄';
             resultMessage.className = 'result-message perfect animate__animated animate__bounceIn';
             
-            showConfetti(100); // 大量の紙吹雪
-            playVictorySound();
+            showConfetti(100);
+            
+        } else if (isNearMiss) {
+            // ニアミス演出（±0.5秒以内）
+            resultMessage.textContent = '😱 おしい！';
+            resultMessage.className = 'result-message near-miss animate__animated animate__shakeX';
             
         } else if (isExcellent) {
-            // ±1秒以内の特別演出
-            consecutiveStreak++;
-            saveStreak();
-            updateStreakDisplay();
-            
-            resultMessage.textContent = '⭐ EXCELLENT! ⭐';
+            // Excellent演出（±1秒以内）
+            resultMessage.textContent = '🎁 EXCELLENT! ⭐';
             resultMessage.className = 'result-message excellent animate__animated animate__tada';
             
-            showConfetti(50); // 中程度の紙吹雪
+            showConfetti(50);
             
         } else {
-            // 連続記録リセット
-            consecutiveStreak = 0;
-            saveStreak();
-            updateStreakDisplay();
-            
+            // 通常演出
             if (timeDiff < 2.0) {
                 resultMessage.textContent = '👍 いい感じ！';
             } else if (timeDiff < 3.0) {
@@ -162,6 +210,16 @@ function displayResult(time) {
 }
 
 // ========================================
+// 画面振動エフェクト
+// ========================================
+function triggerScreenShake() {
+    document.body.classList.add('shake-screen');
+    setTimeout(() => {
+        document.body.classList.remove('shake-screen');
+    }, 500);
+}
+
+// ========================================
 // フラッシュエフェクト
 // ========================================
 function triggerFlash() {
@@ -169,35 +227,6 @@ function triggerFlash() {
     setTimeout(() => {
         flashEffect.classList.remove('flash');
     }, 300);
-}
-
-// ========================================
-// 勝利音（Web Audio API）
-// ========================================
-function playVictorySound() {
-    try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
-        
-        notes.forEach((frequency, index) => {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = frequency;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + index * 0.1);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.1 + 0.5);
-            
-            oscillator.start(audioContext.currentTime + index * 0.1);
-            oscillator.stop(audioContext.currentTime + index * 0.1 + 0.5);
-        });
-    } catch (e) {
-        console.log('音声再生に失敗しました');
-    }
 }
 
 // ========================================
@@ -217,21 +246,20 @@ function animateText(element, text) {
 }
 
 // ========================================
-// 紙吹雪エフェクト（強化版）
+// 紙吹雪エフェクト（クリスマス版）
 // ========================================
 function showConfetti(count = 50) {
-    const emojis = ['🎉', '🎊', '⭐', '✨', '🌟', '💫', '🏆', '👑'];
-    const colors = ['#fbbf24', '#10b981', '#ec4899', '#8b5cf6', '#f59e0b'];
+    const emojis = ['🎄', '🎅', '🎁', '⛄', '❄️', '⭐', '🔔', '🕯️', '🦌'];
+    const colors = ['#ffd700', '#c41e3a', '#0f8558', '#ffffff'];
     
     for (let i = 0; i < count; i++) {
         setTimeout(() => {
             const confetti = document.createElement('div');
             
-            // ランダムで絵文字か色付き四角
-            if (Math.random() > 0.5) {
+            if (Math.random() > 0.3) {
                 confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
             } else {
-                confetti.textContent = '■';
+                confetti.textContent = '●';
                 confetti.style.color = colors[Math.floor(Math.random() * colors.length)];
             }
             
@@ -261,25 +289,52 @@ function addToRanking(name, time) {
         timestamp: Date.now()
     };
     
+    // 新記録かどうかをチェック（トップ10に入るか）
+    const oldRankingsLength = rankings.length;
+    const wouldBeInTop10 = oldRankingsLength < 10 || record.diff < rankings[rankings.length - 1].diff;
+    
     rankings.push(record);
     rankings.sort((a, b) => a.diff - b.diff);
     rankings = rankings.slice(0, 10);
     
     saveRankings();
-    displayRankings(record);
+    
+    // トップ10に入った場合は新記録音を再生
+    if (wouldBeInTop10) {
+        setTimeout(() => {
+            playSound(seRankNew);
+        }, 500);
+    }
+    
+    displayRankings(record, wouldBeInTop10);
 }
 
 // ========================================
-// ランキング表示
+// ランキング表示（スロット演出強化版）
 // ========================================
-function displayRankings(newRecord = null) {
+function displayRankings(newRecord = null, isNewRecord = false) {
+    // 新記録の場合はランキング全体をスロット演出
+    if (isNewRecord && newRecord) {
+        // 一旦全て非表示
+        rankingBody.style.opacity = '0';
+        
+        setTimeout(() => {
+            updateRankingTable(newRecord, isNewRecord);
+            rankingBody.style.opacity = '1';
+        }, 300);
+    } else {
+        updateRankingTable(newRecord, isNewRecord);
+    }
+}
+
+function updateRankingTable(newRecord = null, isNewRecord = false) {
     rankingBody.innerHTML = '';
     
     if (rankings.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                まだ記録がありません<br>最初のチャレンジャーになろう！
+                🎄 記録がありません 🎄
             </td>
         `;
         rankingBody.appendChild(row);
@@ -292,38 +347,39 @@ function displayRankings(newRecord = null) {
                       record.name === newRecord.name && 
                       record.timestamp === newRecord.timestamp;
         
-        if (isNew) {
-            row.classList.add('new-record', 'slot-animation');
+        // 新記録の場合はスロット演出＋光エフェクト
+        if (isNew && isNewRecord) {
+            row.classList.add('new-record', 'rank-slot-spin', 'rank-glow');
+            
+            // 5秒後に光エフェクトを解除
+            setTimeout(() => {
+                row.classList.remove('rank-glow');
+            }, 5000);
         }
         
         let rankDisplay = index + 1;
         if (index === 0) rankDisplay = '🥇';
         else if (index === 1) rankDisplay = '🥈';
         else if (index === 2) rankDisplay = '🥉';
+        else if (index === 3) rankDisplay = '🌟'; // 4位
+        else if (index === 4) rankDisplay = '⭐'; // 5位
         
         row.innerHTML = `
             <td style="font-weight: bold;">${rankDisplay}</td>
             <td>${escapeHtml(record.name)}</td>
             <td style="font-weight: 600;">${record.time.toFixed(2)}秒</td>
-            <td style="color: ${record.diff < 0.1 ? '#10b981' : '#fbbf24'};">
+            <td style="color: ${record.diff < 0.1 ? 'var(--christmas-gold)' : 'var(--christmas-green)'};">
                 ${record.diff < 0.05 ? 'PERFECT!' : '±' + record.diff.toFixed(2) + '秒'}
             </td>
         `;
         
         rankingBody.appendChild(row);
+        
+        // 新記録の場合は順次表示演出
+        if (isNewRecord) {
+            row.style.animationDelay = `${index * 0.1}s`;
+        }
     });
-}
-
-// ========================================
-// 連続成功表示更新
-// ========================================
-function updateStreakDisplay() {
-    if (consecutiveStreak > 0) {
-        streakCounter.classList.remove('hidden');
-        streakCount.textContent = consecutiveStreak;
-    } else {
-        streakCounter.classList.add('hidden');
-    }
 }
 
 // ========================================
@@ -347,28 +403,11 @@ function loadRankings() {
     }
 }
 
-function saveStreak() {
-    try {
-        localStorage.setItem('10sec-streak', consecutiveStreak.toString());
-    } catch (e) {
-        console.error('連続記録保存失敗:', e);
-    }
-}
-
-function loadStreak() {
-    try {
-        const saved = localStorage.getItem('10sec-streak');
-        if (saved) consecutiveStreak = parseInt(saved, 10) || 0;
-    } catch (e) {
-        consecutiveStreak = 0;
-    }
-}
-
 // ========================================
 // ゲームリセット
 // ========================================
 function resetGame() {
-    gameButton.textContent = 'スタート';
+    gameButton.textContent = '🎁 スタート';
     gameButton.classList.remove('stop');
     gameButton.disabled = false;
     

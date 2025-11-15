@@ -3,17 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10秒チャレンジ</title>
+    <title>10秒チャレンジ - Christmas Edition 🎄</title>
     <link rel="stylesheet" href="style.css">
     <!-- Animate.css CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
 <body>
+    <!-- 雪エフェクト -->
+    <div id="snow-container"></div>
+    
     <!-- 紙吹雪コンテナ -->
     <div id="confetti-container"></div>
     
     <!-- フラッシュエフェクト -->
     <div id="flash-effect"></div>
+    
+    <!-- 判定中オーバーレイ -->
+    <div id="judgment-overlay" class="judgment-overlay hidden">
+        <div class="judgment-content">
+            <div class="drum-roll">🥁</div>
+            <div class="judgment-text">判定中...</div>
+            <div class="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音声ファイル（preloadでオフライン対応） -->
+    <audio id="se-button-start" src="sounds/se_button_start.mp3" preload="auto"></audio>
+    <audio id="se-button-stop" src="sounds/se_button_stop.mp3" preload="auto"></audio>
+    <audio id="se-result-near" src="sounds/se_result_near.mp3" preload="auto"></audio>
+    <audio id="se-rank-new" src="sounds/se_rank_new.mp3" preload="auto"></audio>
 
     <!-- リセットボタン（右上固定） -->
     <button id="resetAllButton" class="reset-all-button" title="ランキングをリセット">
@@ -24,8 +44,18 @@
     <div class="container">
         <!-- タイトルセクション -->
         <header class="header">
-            <h1 class="title">10秒チャレンジ</h1>
-            <p class="subtitle">10秒ちょうどを目指してストップボタンを押そう！</p>
+            <h1 class="title">
+                🎄 10秒チャレンジ 🎄
+                <div class="christmas-lights">
+                    <span class="light red"></span>
+                    <span class="light green"></span>
+                    <span class="light blue"></span>
+                    <span class="light yellow"></span>
+                    <span class="light red"></span>
+                    <span class="light green"></span>
+                </div>
+            </h1>
+            <p class="subtitle">⛄ 10秒ちょうどを目指してストップボタンを押そう！ ☃️</p>
         </header>
 
         <!-- 2カラムレイアウト -->
@@ -34,35 +64,30 @@
             <div class="game-section">
                 <!-- 名前入力フィールド -->
                 <div class="input-group">
-                    <label for="playerName">プレイヤー名</label>
+                    <label for="playerName">🎅 プレイヤー名</label>
                     <input 
                         type="text" 
                         id="playerName" 
-                        placeholder="名前を入力（省略可）" 
+                        placeholder="名前を入力" 
                         maxlength="10"
                         autocomplete="off"
                     >
                 </div>
 
                 <!-- スタート/ストップボタン -->
-                <button id="gameButton" class="game-button">スタート</button>
+                <button id="gameButton" class="game-button">🎁 スタート</button>
 
                 <!-- 結果表示エリア -->
                 <div id="resultArea" class="result-area hidden">
                     <div id="resultTime" class="result-time"></div>
                     <div id="resultMessage" class="result-message"></div>
-                    <button id="retryButton" class="retry-button">もう一度挑戦</button>
-                </div>
-                
-                <!-- 連続成功カウンター -->
-                <div id="streakCounter" class="streak-counter hidden">
-                    🔥 連続成功: <span id="streakCount">0</span>回
+                    <button id="retryButton" class="retry-button">🎄 次の人挑戦</button>
                 </div>
             </div>
 
             <!-- 右側：ランキングエリア -->
             <div class="ranking-section">
-                <h2 class="ranking-title">🏆 RANKING</h2>
+                <h2 class="ranking-title">🏆 RANKING 🏆</h2>
                 <div class="ranking-container">
                     <table class="ranking-table">
                         <thead>
